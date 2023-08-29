@@ -1,0 +1,4 @@
+external:
+  transfer-service:
+    port: 8083
+    host: localhost
