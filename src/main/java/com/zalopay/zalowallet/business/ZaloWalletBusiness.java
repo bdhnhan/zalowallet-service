@@ -74,6 +74,7 @@ public class ZaloWalletBusiness {
             if (zaloWalletOptional.isPresent()) {
                 Long amountCurrent = zaloWalletOptional.get().getAmount();
                 zaloWalletOptional.get().setAmount(amountCurrent + amount);
+                zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletRepository.save(zaloWalletOptional.get());
                 String json = "{\"transId\":\""+transId+"\",\"status\":\"COMPLETED\"}";
                 callBack(url, json);
@@ -157,6 +158,7 @@ public class ZaloWalletBusiness {
             if (zaloWalletOptional.isPresent() && zaloWalletOptional.get().getAmount() - amount >= 0L) {
                 Long amountCurrent = zaloWalletOptional.get().getAmount();
                 zaloWalletOptional.get().setAmount(amountCurrent - amount);
+                zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletRepository.save(zaloWalletOptional.get());
                 String json = "{\"transId\":\""+transId+"\",\"status\":\"COMPLETED\"}";
                 callBack(url, json);
@@ -191,6 +193,7 @@ public class ZaloWalletBusiness {
                 Optional<ZaloWallet> zaloWalletOptional =
                         zaloWalletRepository.findByUserId(zaloWalletTransactionOpt.get().getUserId());
                 Long amountCurrent = zaloWalletOptional.get().getAmount();
+                zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletOptional.get().setAmount(amountCurrent - zaloWalletTransactionOpt.get().getAmount());
                 zaloWalletRepository.save(zaloWalletOptional.get());
                 String json = "{\"transId\":\""+transId+"\",\"status\":\"COMPLETED\"}";
