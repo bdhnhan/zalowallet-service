@@ -11,7 +11,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.io.DataOutputStream;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -36,7 +35,7 @@ public class ZaloWalletBusiness {
 
     public Zalowallet.TopUpWalletResponse topUpWallet(Zalowallet.TopUpWalletRequest request) {
         Zalowallet.TopUpWalletResponse.Result.Builder resultBuilder = Zalowallet.TopUpWalletResponse.Result.newBuilder();
-        log.info("Receive request top up wallet userId:: {}", request.getUserId());
+        log.info("Receive request top up wallet PhoneNumber:: {}", request.getPhoneNumber());
 
         UUID uuid = UUID.randomUUID();
         resultBuilder.setTransId(uuid.toString());
@@ -44,7 +43,7 @@ public class ZaloWalletBusiness {
 
         ZaloWalletTransaction zaloWalletTransaction = new ZaloWalletTransaction();
         zaloWalletTransaction.setId(uuid.toString());
-        zaloWalletTransaction.setUserId(request.getUserId());
+        zaloWalletTransaction.setPhoneNumber(request.getPhoneNumber());
         zaloWalletTransaction.setStatus(TransactionStatusEnum.PROCESSING);
         zaloWalletTransaction.setAmount(request.getAmount());
         zaloWalletTransaction.setCreatedTime(new Timestamp(System.currentTimeMillis()));
@@ -61,12 +60,12 @@ public class ZaloWalletBusiness {
     public void callBackTopUpTransId(Zalowallet.TopUpWalletRequest request, String transId) {
         Thread thread = new Thread(() -> {
             try {
-                Thread.sleep(5000);
+                Thread.sleep(100);
             } catch (InterruptedException e) {
                 throw new RuntimeException(e);
             }
             Long amount = request.getAmount();
-            Optional<ZaloWallet> zaloWalletOptional = zaloWalletRepository.findByUserId(request.getUserId());
+            Optional<ZaloWallet> zaloWalletOptional = zaloWalletRepository.findByPhoneNumber(request.getPhoneNumber());
             Optional<ZaloWalletTransaction> zaloWalletTransactionOpt =
                     zaloWalletTransactionRepository.findById(transId);
 
@@ -119,7 +118,7 @@ public class ZaloWalletBusiness {
 
     public Zalowallet.WithdrawWalletResponse withdrawWallet(Zalowallet.WithdrawWalletRequest request) {
         Zalowallet.WithdrawWalletResponse.Result.Builder resultBuilder = Zalowallet.WithdrawWalletResponse.Result.newBuilder();
-        log.info("Receive request withdraw wallet userId :: {}", request.getUserId());
+        log.info("Receive request withdraw wallet phoneNumber :: {}", request.getPhoneNumber());
 
         UUID uuid = UUID.randomUUID();
         resultBuilder.setTransId(uuid.toString());
@@ -127,7 +126,7 @@ public class ZaloWalletBusiness {
 
         ZaloWalletTransaction zaloWalletTransaction = new ZaloWalletTransaction();
         zaloWalletTransaction.setId(uuid.toString());
-        zaloWalletTransaction.setUserId(request.getUserId());
+        zaloWalletTransaction.setPhoneNumber(request.getPhoneNumber());
         zaloWalletTransaction.setStatus(TransactionStatusEnum.PROCESSING);
         zaloWalletTransaction.setAmount(-request.getAmount());
         zaloWalletTransaction.setCreatedTime(new Timestamp(System.currentTimeMillis()));
@@ -150,7 +149,7 @@ public class ZaloWalletBusiness {
                 throw new RuntimeException(e);
             }
             Long amount = request.getAmount();
-            Optional<ZaloWallet> zaloWalletOptional = zaloWalletRepository.findByUserId(request.getUserId());
+            Optional<ZaloWallet> zaloWalletOptional = zaloWalletRepository.findByPhoneNumber(request.getPhoneNumber());
             Optional<ZaloWalletTransaction> zaloWalletTransactionOpt =
                     zaloWalletTransactionRepository.findById(transId);
 
@@ -191,7 +190,7 @@ public class ZaloWalletBusiness {
             String url = "http://" + tranferHost + ":" + transferPort + "/transfer/callback";
             if (zaloWalletTransactionOpt.isPresent()) {
                 Optional<ZaloWallet> zaloWalletOptional =
-                        zaloWalletRepository.findByUserId(zaloWalletTransactionOpt.get().getUserId());
+                        zaloWalletRepository.findByPhoneNumber(zaloWalletTransactionOpt.get().getPhoneNumber());
                 Long amountCurrent = zaloWalletOptional.get().getAmount();
                 zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletOptional.get().setAmount(amountCurrent - zaloWalletTransactionOpt.get().getAmount());

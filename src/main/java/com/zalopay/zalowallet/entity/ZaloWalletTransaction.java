@@ -13,7 +13,7 @@ import java.sql.Timestamp;
 public class ZaloWalletTransaction {
     @Id
     private String id;
-    private String userId;
+    private String phoneNumber;
     private Long amount;
     @Enumerated(EnumType.STRING)
     private TransactionStatusEnum status;

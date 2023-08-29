@@ -7,5 +7,4 @@ import org.springframework.data.repository.CrudRepository;
 import java.util.Optional;
 
 public interface ZaloWalletTransactionRepository extends CrudRepository<ZaloWalletTransaction, String> {
-    Optional<ZaloWalletTransaction> findByUserId(String userId);
 }
