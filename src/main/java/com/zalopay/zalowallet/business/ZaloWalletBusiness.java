@@ -110,7 +110,7 @@ public class ZaloWalletBusiness {
             } else {
                 System.out.println("Error: " + responseCode);
             }
-
+            con.disconnect();
         } catch (IOException e) {
             log.error("LOST CONNECTION");
         }
