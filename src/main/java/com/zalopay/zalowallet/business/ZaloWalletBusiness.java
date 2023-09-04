@@ -1,5 +1,6 @@
 package com.zalopay.zalowallet.business;
 
+import com.zalopay.zalowallet.controller.response.ResultResponse;
 import com.zalopay.zalowallet.entity.ZaloWallet;
 import com.zalopay.zalowallet.entity.ZaloWalletTransaction;
 import com.zalopay.zalowallet.enums.TransactionStatusEnum;
@@ -221,5 +222,40 @@ public class ZaloWalletBusiness {
                 .setResult(resultBuilder)
                 .setStatus(200)
                 .build();
+    }
+
+    public ResultResponse<ZaloWallet> getWalletInfo(String phoneNumber) {
+        Optional<ZaloWallet> zaloWalletOptional = zaloWalletRepository.findByPhoneNumber(phoneNumber);
+        if (zaloWalletOptional.isPresent()) {
+            ZaloWallet zaloWallet = zaloWalletOptional.get();
+            return ResultResponse.<ZaloWallet>builder()
+                    .status(200L)
+                    .result(zaloWallet)
+                    .build();
+        }
+        return ResultResponse.<ZaloWallet>builder()
+                .status(400L)
+                .result(null)
+                .build();
+    }
+
+    public Zalowallet.GetStatusTransactionResponse getStatusTransaction(String transId) {
+        Optional<ZaloWalletTransaction> zaloWalletTransactionOpt = zaloWalletTransactionRepository.findById(transId);
+        return zaloWalletTransactionOpt.map(zaloWalletTransaction -> Zalowallet.GetStatusTransactionResponse.newBuilder()
+                .setStatus(200)
+                .setResult(
+                        Zalowallet.GetStatusTransactionResponse.Result.newBuilder()
+                                .setTransId(transId)
+                                .setStatus(zaloWalletTransaction.getStatus().name())
+                                .build()
+                ).build()).orElseGet(() -> Zalowallet.GetStatusTransactionResponse.newBuilder()
+                .setStatus(400)
+                .setResult(
+                        Zalowallet.GetStatusTransactionResponse.Result.newBuilder()
+                                .setTransId(transId)
+                                .setStatus("Can not found transactionID :: " + transId)
+                                .build()
+                ).build());
+
     }
 }
