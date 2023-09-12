@@ -15,15 +15,15 @@ public class ZaloWalletService extends ZalopayServiceGrpc.ZalopayServiceImplBase
     }
 
     @Override
-    public void topUpWallet(TopUpWalletRequest request, StreamObserver<TopUpWalletResponse> responseObserver) {
-        TopUpWalletResponse response = zaloWalletBusiness.topUpWallet(request);
+    public void addMoneyWallet(AddMoneyWalletRequest request, StreamObserver<AddMoneyWalletResponse> responseObserver) {
+        AddMoneyWalletResponse response = zaloWalletBusiness.addMoneyWallet(request);
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }
 
     @Override
-    public void withdrawWallet(WithdrawWalletRequest request, StreamObserver<WithdrawWalletResponse> responseObserver) {
-        WithdrawWalletResponse response = zaloWalletBusiness.withdrawWallet(request);
+    public void deductMoneyWallet(DeductMoneyWalletRequest request, StreamObserver<DeductMoneyWalletResponse> responseObserver) {
+        DeductMoneyWalletResponse response = zaloWalletBusiness.deductMoneyWallet(request);
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }

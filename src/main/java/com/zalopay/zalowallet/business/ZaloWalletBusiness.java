@@ -1,6 +1,8 @@
 package com.zalopay.zalowallet.business;
 
+import com.zalopay.zalowallet.configuration.ConfigHttpConnect;
 import com.zalopay.zalowallet.controller.response.ResultResponse;
+import com.zalopay.zalowallet.data.CallBackResponse;
 import com.zalopay.zalowallet.entity.ZaloWallet;
 import com.zalopay.zalowallet.entity.ZaloWalletTransaction;
 import com.zalopay.zalowallet.enums.TransactionStatusEnum;
@@ -24,6 +26,7 @@ import java.util.UUID;
 public class ZaloWalletBusiness {
     private final ZaloWalletRepository zaloWalletRepository;
     private final ZaloWalletTransactionRepository zaloWalletTransactionRepository;
+
     @Value("${external.transfer-service.host}")
     private String tranferHost;
     @Value("${external.transfer-service.port}")
@@ -34,8 +37,8 @@ public class ZaloWalletBusiness {
         this.zaloWalletTransactionRepository = zaloWalletTransactionRepository;
     }
 
-    public Zalowallet.TopUpWalletResponse topUpWallet(Zalowallet.TopUpWalletRequest request) {
-        Zalowallet.TopUpWalletResponse.Result.Builder resultBuilder = Zalowallet.TopUpWalletResponse.Result.newBuilder();
+    public Zalowallet.AddMoneyWalletResponse addMoneyWallet(Zalowallet.AddMoneyWalletRequest request) {
+        Zalowallet.AddMoneyWalletResponse.Result.Builder resultBuilder = Zalowallet.AddMoneyWalletResponse.Result.newBuilder();
         log.info("Receive request top up wallet PhoneNumber:: {}", request.getPhoneNumber());
 
         UUID uuid = UUID.randomUUID();
@@ -51,14 +54,14 @@ public class ZaloWalletBusiness {
         zaloWalletTransaction.setTransType(TransactionType.TOP_UP);
         zaloWalletTransactionRepository.save(zaloWalletTransaction);
 
-        callBackTopUpTransId(request, uuid.toString());
-        return Zalowallet.TopUpWalletResponse.newBuilder()
+        callBackAddMoneyTransId(request, uuid.toString());
+        return Zalowallet.AddMoneyWalletResponse.newBuilder()
                 .setResult(resultBuilder)
                 .setStatus(200)
                 .build();
     }
 
-    public void callBackTopUpTransId(Zalowallet.TopUpWalletRequest request, String transId) {
+    public void callBackAddMoneyTransId(Zalowallet.AddMoneyWalletRequest request, String transId) {
         Thread thread = new Thread(() -> {
             try {
                 Thread.sleep(100);
@@ -70,22 +73,21 @@ public class ZaloWalletBusiness {
             Optional<ZaloWalletTransaction> zaloWalletTransactionOpt =
                     zaloWalletTransactionRepository.findById(transId);
 
-            String url = "http://" + tranferHost + ":" + transferPort + "/transfer/callback";
             if (zaloWalletOptional.isPresent()) {
                 Long amountCurrent = zaloWalletOptional.get().getAmount();
                 zaloWalletOptional.get().setAmount(amountCurrent + amount);
                 zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletRepository.save(zaloWalletOptional.get());
-                String json = "{\"transId\":\""+transId+"\",\"status\":\"COMPLETED\"}";
-                callBack(url, json);
+                String json = CallBackResponse.generateJsonString(transId, "COMPLETED");
+                callBack(json);
 
                 zaloWalletTransactionOpt.ifPresent(trans -> {
                         trans.setStatus(TransactionStatusEnum.COMPLETED);
                     zaloWalletTransactionRepository.save(zaloWalletTransactionOpt.get());
                 });
             } else {
-                String json = "{\"transId\":\""+transId+"\",\"status\":\"FAILED\"}";
-                callBack(url, json);
+                String json = CallBackResponse.generateJsonString(transId, "FAILED");
+                callBack(json);
                 zaloWalletTransactionOpt.ifPresent(trans -> {
                         trans.setStatus(TransactionStatusEnum.FAILED);
                     zaloWalletTransactionRepository.save(zaloWalletTransactionOpt.get());
@@ -95,14 +97,10 @@ public class ZaloWalletBusiness {
         thread.start();
     }
 
-    public void callBack(String url, String json) {
-        System.out.println(url + " :: " + json);
+    public void callBack(String json) {
+        String url = "http://" + tranferHost + ":" + transferPort + "/transfer/callback";
         try {
-            URL obj = new URL(url);
-            HttpURLConnection con = (HttpURLConnection) obj.openConnection();
-            con.setRequestMethod("POST");
-            con.setRequestProperty("Content-Type", "application/json");
-            con.setDoOutput(true);
+            HttpURLConnection con = ConfigHttpConnect.connect(url);
             con.getOutputStream().write(json.getBytes());
             con.connect();
             int responseCode = con.getResponseCode();
@@ -117,9 +115,9 @@ public class ZaloWalletBusiness {
         }
     }
 
-    public Zalowallet.WithdrawWalletResponse withdrawWallet(Zalowallet.WithdrawWalletRequest request) {
-        Zalowallet.WithdrawWalletResponse.Result.Builder resultBuilder = Zalowallet.WithdrawWalletResponse.Result.newBuilder();
-        log.info("Receive request withdraw wallet phoneNumber :: {}", request.getPhoneNumber());
+    public Zalowallet.DeductMoneyWalletResponse deductMoneyWallet(Zalowallet.DeductMoneyWalletRequest request) {
+        Zalowallet.DeductMoneyWalletResponse.Result.Builder resultBuilder = Zalowallet.DeductMoneyWalletResponse.Result.newBuilder();
+        log.info("Receive request deductMoney wallet phoneNumber :: {}", request.getPhoneNumber());
 
         UUID uuid = UUID.randomUUID();
         resultBuilder.setTransId(uuid.toString());
@@ -134,15 +132,15 @@ public class ZaloWalletBusiness {
         zaloWalletTransaction.setTransType(TransactionType.WITHDRAW);
         zaloWalletTransactionRepository.save(zaloWalletTransaction);
 
-        callBackWithdrawTransId(request, uuid.toString());
+        callBackDeductMoneyTransId(request, uuid.toString());
 
-        return Zalowallet.WithdrawWalletResponse.newBuilder()
+        return Zalowallet.DeductMoneyWalletResponse.newBuilder()
                 .setResult(resultBuilder)
                 .setStatus(200)
                 .build();
     }
 
-    public void callBackWithdrawTransId(Zalowallet.WithdrawWalletRequest request, String transId) {
+    public void callBackDeductMoneyTransId(Zalowallet.DeductMoneyWalletRequest request, String transId) {
         Thread thread = new Thread(() -> {
             try {
                 Thread.sleep(100);
@@ -151,24 +149,22 @@ public class ZaloWalletBusiness {
             }
             Long amount = request.getAmount();
             Optional<ZaloWallet> zaloWalletOptional = zaloWalletRepository.findByPhoneNumber(request.getPhoneNumber());
-            Optional<ZaloWalletTransaction> zaloWalletTransactionOpt =
-                    zaloWalletTransactionRepository.findById(transId);
+            Optional<ZaloWalletTransaction> zaloWalletTransactionOpt = zaloWalletTransactionRepository.findById(transId);
 
-            String url = "http://" + tranferHost + ":" + transferPort + "/transfer/callback";
             if (zaloWalletOptional.isPresent() && zaloWalletOptional.get().getAmount() - amount >= 0L) {
                 Long amountCurrent = zaloWalletOptional.get().getAmount();
                 zaloWalletOptional.get().setAmount(amountCurrent - amount);
                 zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletRepository.save(zaloWalletOptional.get());
-                String json = "{\"transId\":\""+transId+"\",\"status\":\"COMPLETED\"}";
-                callBack(url, json);
+                String json = CallBackResponse.generateJsonString(transId, "COMPLETED");
+                callBack(json);
                 zaloWalletTransactionOpt.ifPresent(trans -> {
                     trans.setStatus(TransactionStatusEnum.COMPLETED);
                     zaloWalletTransactionRepository.save(zaloWalletTransactionOpt.get());
                 });
             } else {
-                String json = "{\"transId\":\""+transId+"\",\"status\":\"FAILED\"}";
-                callBack(url, json);
+                String json = CallBackResponse.generateJsonString(transId, "FAILED");
+                callBack(json);
                 zaloWalletTransactionOpt.ifPresent(trans -> {
                     trans.setStatus(TransactionStatusEnum.FAILED);
                     zaloWalletTransactionRepository.save(zaloWalletTransactionOpt.get());
@@ -196,15 +192,15 @@ public class ZaloWalletBusiness {
                 zaloWalletOptional.get().setUpdatedTime(new Timestamp(System.currentTimeMillis()));
                 zaloWalletOptional.get().setAmount(amountCurrent - zaloWalletTransactionOpt.get().getAmount());
                 zaloWalletRepository.save(zaloWalletOptional.get());
-                String json = "{\"transId\":\""+transId+"\",\"status\":\"COMPLETED\"}";
-                callBack(url, json);
+                String json = CallBackResponse.generateJsonString(transId, "COMPLETED");
+                callBack(json);
                 zaloWalletTransactionOpt.ifPresent(trans -> {
                     trans.setStatus(TransactionStatusEnum.ROLLBACK);
                     zaloWalletTransactionRepository.save(zaloWalletTransactionOpt.get());
                 });
             } else {
-                String json = "{\"transId\":\""+transId+"\",\"status\":\"FAILED\"}";
-                callBack(url, json);
+                String json = CallBackResponse.generateJsonString(transId, "FAILED");
+                callBack(json);
             }
         });
         thread.start();
