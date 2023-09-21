@@ -37,7 +37,7 @@ public class ZaloWalletService extends ZalopayServiceGrpc.ZalopayServiceImplBase
 
     @Override
     public void getStatusTransaction(GetStatusTransactionRequest request, StreamObserver<GetStatusTransactionResponse> responseObserver) {
-        GetStatusTransactionResponse response = zaloWalletBusiness.getStatusTransaction(request.getTransId());
+        GetStatusTransactionResponse response = zaloWalletBusiness.getStatusTransaction(request);
         responseObserver.onNext(response);
         responseObserver.onCompleted();
     }

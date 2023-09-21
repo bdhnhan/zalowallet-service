@@ -52,6 +52,7 @@ public class ZaloWalletBusiness {
         zaloWalletTransaction.setAmount(request.getAmount());
         zaloWalletTransaction.setCreatedTime(new Timestamp(System.currentTimeMillis()));
         zaloWalletTransaction.setTransType(TransactionType.TOP_UP);
+        zaloWalletTransaction.setKeySource(request.getKeySource());
         zaloWalletTransactionRepository.save(zaloWalletTransaction);
 
         callBackAddMoneyTransId(request, uuid.toString());
@@ -130,6 +131,7 @@ public class ZaloWalletBusiness {
         zaloWalletTransaction.setAmount(-request.getAmount());
         zaloWalletTransaction.setCreatedTime(new Timestamp(System.currentTimeMillis()));
         zaloWalletTransaction.setTransType(TransactionType.WITHDRAW);
+        zaloWalletTransaction.setKeySource(request.getKeySource());
         zaloWalletTransactionRepository.save(zaloWalletTransaction);
 
         callBackDeductMoneyTransId(request, uuid.toString());
@@ -184,7 +186,6 @@ public class ZaloWalletBusiness {
             String transId = request.getTransId();
             Optional<ZaloWalletTransaction> zaloWalletTransactionOpt =
                     zaloWalletTransactionRepository.findById(request.getTransId());
-            String url = "http://" + tranferHost + ":" + transferPort + "/transfer/callback";
             if (zaloWalletTransactionOpt.isPresent()) {
                 Optional<ZaloWallet> zaloWalletOptional =
                         zaloWalletRepository.findByPhoneNumber(zaloWalletTransactionOpt.get().getPhoneNumber());
@@ -235,21 +236,22 @@ public class ZaloWalletBusiness {
                 .build();
     }
 
-    public Zalowallet.GetStatusTransactionResponse getStatusTransaction(String transId) {
-        Optional<ZaloWalletTransaction> zaloWalletTransactionOpt = zaloWalletTransactionRepository.findById(transId);
+    public Zalowallet.GetStatusTransactionResponse getStatusTransaction(Zalowallet.GetStatusTransactionRequest request) {
+        Optional<ZaloWalletTransaction> zaloWalletTransactionOpt =
+                zaloWalletTransactionRepository.findFirstByIdOrKeySource(request.getTransId(), request.getKeySource());
         return zaloWalletTransactionOpt.map(zaloWalletTransaction -> Zalowallet.GetStatusTransactionResponse.newBuilder()
                 .setStatus(200)
                 .setResult(
                         Zalowallet.GetStatusTransactionResponse.Result.newBuilder()
-                                .setTransId(transId)
+                                .setTransId(request.getTransId())
                                 .setStatus(zaloWalletTransaction.getStatus().name())
                                 .build()
                 ).build()).orElseGet(() -> Zalowallet.GetStatusTransactionResponse.newBuilder()
                 .setStatus(400)
                 .setResult(
                         Zalowallet.GetStatusTransactionResponse.Result.newBuilder()
-                                .setTransId(transId)
-                                .setStatus("Can not found transactionID :: " + transId)
+                                .setTransId(request.getTransId())
+                                .setStatus("Can not found transactionID :: " + request.getTransId())
                                 .build()
                 ).build());
 

@@ -20,4 +20,5 @@ public class ZaloWalletTransaction {
     @Enumerated(EnumType.STRING)
     private TransactionType transType;
     private Timestamp createdTime;
+    private String keySource;
 }
